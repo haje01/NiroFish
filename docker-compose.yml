@@ -1,6 +1,6 @@
 services:
   neo4j:
-    image: neo4j:5.15
+    image: neo4j:5.26
     container_name: nirofish-neo4j
     environment:
       - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:-nirofish_password}

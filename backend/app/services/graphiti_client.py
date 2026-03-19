@@ -46,7 +46,13 @@ class GraphitiClientManager:
     @classmethod
     def _create_client(cls) -> Graphiti:
         """Graphiti 클라이언트 생성 및 초기화"""
+        import os
         logger.info(f"Graphiti 클라이언트 생성: uri={Config.NEO4J_URI}")
+
+        # Graphiti 내부 OpenAI 클라이언트가 OPENAI_API_KEY 환경변수를 직접 참조하므로
+        # LLM_API_KEY 값을 OPENAI_API_KEY 로 강제 설정
+        if Config.LLM_API_KEY:
+            os.environ['OPENAI_API_KEY'] = Config.LLM_API_KEY
 
         # OpenAI 호환 LLM 클라이언트 구성
         llm_config = LLMConfig(

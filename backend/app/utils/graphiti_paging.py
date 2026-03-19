@@ -41,9 +41,13 @@ async def fetch_all_nodes_async(
         nodes = []
         for record in records:
             n = record["n"]
-            # Neo4j Node 객체에서 속성 추출
-            props = dict(n)
-            labels = list(n.labels)
+            # neo4j 드라이버 버전에 따라 Node 객체 또는 dict로 반환됨
+            if isinstance(n, dict):
+                props = n
+                labels = n.get("labels", [])
+            else:
+                props = dict(n)
+                labels = list(n.labels)
 
             nodes.append({
                 "uuid": props.get("uuid", ""),
@@ -80,7 +84,10 @@ async def fetch_all_edges_async(
     """
     query = (
         "MATCH (s:Entity)-[r:RELATES_TO {group_id: $gid}]->(t:Entity) "
-        "RETURN r, s.uuid AS source_uuid, t.uuid AS target_uuid "
+        "RETURN r.uuid AS uuid, r.name AS name, r.fact AS fact, "
+        "r.created_at AS created_at, r.valid_at AS valid_at, "
+        "r.invalid_at AS invalid_at, r.expired_at AS expired_at, "
+        "s.uuid AS source_uuid, t.uuid AS target_uuid "
         "LIMIT $limit"
     )
     try:
@@ -90,20 +97,17 @@ async def fetch_all_edges_async(
 
         edges = []
         for record in records:
-            r = record["r"]
-            props = dict(r)
-
             edges.append({
-                "uuid": props.get("uuid", ""),
-                "name": props.get("name", ""),
-                "fact": props.get("fact", ""),
-                "source_node_uuid": record.get("source_uuid", props.get("source_node_uuid", "")),
-                "target_node_uuid": record.get("target_uuid", props.get("target_node_uuid", "")),
-                "attributes": _safe_dict(props.get("attributes", {})),
-                "created_at": _dt_str(props.get("created_at")),
-                "valid_at": _dt_str(props.get("valid_at")),
-                "invalid_at": _dt_str(props.get("invalid_at")),
-                "expired_at": _dt_str(props.get("expired_at")),
+                "uuid": record.get("uuid", ""),
+                "name": record.get("name", ""),
+                "fact": record.get("fact", ""),
+                "source_node_uuid": record.get("source_uuid", ""),
+                "target_node_uuid": record.get("target_uuid", ""),
+                "attributes": {},
+                "created_at": _dt_str(record.get("created_at")),
+                "valid_at": _dt_str(record.get("valid_at")),
+                "invalid_at": _dt_str(record.get("invalid_at")),
+                "expired_at": _dt_str(record.get("expired_at")),
             })
 
         logger.info(f"그래프 {group_id}: 엣지 {len(edges)}개 조회 완료")
@@ -150,7 +154,10 @@ async def fetch_node_edges_async(
     """특정 노드에 연결된 모든 엣지 조회 (async)"""
     query = (
         "MATCH (n:Entity {uuid: $uuid})-[r:RELATES_TO]-(m:Entity) "
-        "RETURN r, startNode(r).uuid AS source_uuid, endNode(r).uuid AS target_uuid"
+        "RETURN r.uuid AS uuid, r.name AS name, r.fact AS fact, "
+        "r.created_at AS created_at, r.valid_at AS valid_at, "
+        "r.invalid_at AS invalid_at, r.expired_at AS expired_at, "
+        "startNode(r).uuid AS source_uuid, endNode(r).uuid AS target_uuid"
     )
     try:
         async with graphiti_client.driver.session() as session:
@@ -159,19 +166,17 @@ async def fetch_node_edges_async(
 
         edges = []
         for record in records:
-            r = record["r"]
-            props = dict(r)
             edges.append({
-                "uuid": props.get("uuid", ""),
-                "name": props.get("name", ""),
-                "fact": props.get("fact", ""),
+                "uuid": record.get("uuid", ""),
+                "name": record.get("name", ""),
+                "fact": record.get("fact", ""),
                 "source_node_uuid": record.get("source_uuid", ""),
                 "target_node_uuid": record.get("target_uuid", ""),
-                "attributes": _safe_dict(props.get("attributes", {})),
-                "created_at": _dt_str(props.get("created_at")),
-                "valid_at": _dt_str(props.get("valid_at")),
-                "invalid_at": _dt_str(props.get("invalid_at")),
-                "expired_at": _dt_str(props.get("expired_at")),
+                "attributes": {},
+                "created_at": _dt_str(record.get("created_at")),
+                "valid_at": _dt_str(record.get("valid_at")),
+                "invalid_at": _dt_str(record.get("invalid_at")),
+                "expired_at": _dt_str(record.get("expired_at")),
             })
         return edges
     except Exception as e:
@@ -235,6 +240,17 @@ def delete_graph(graphiti_client: Graphiti, group_id: str) -> int:
 
 
 # ── 내부 헬퍼 ─────────────────────────────────────────────────────────────────
+
+def _rel_to_props(r) -> dict:
+    """neo4j Relationship 또는 dict에서 속성 dict 추출"""
+    if isinstance(r, dict):
+        return r
+    if hasattr(r, 'data'):
+        return r.data()
+    if hasattr(r, 'items'):
+        return dict(r.items())
+    return {}
+
 
 def _dt_str(val) -> str | None:
     """datetime 또는 문자열을 str로 변환. None이면 None 반환."""

@@ -4,7 +4,7 @@
     <nav class="navbar">
       <div class="nav-brand">NIROFISH</div>
       <div class="nav-links">
-        <a href="https://github.com/666ghj/NiroFish" target="_blank" class="github-link">
+        <a href="https://github.com/haje01/NiroFish" target="_blank" class="github-link">
           Github 홈페이지 방문 <span class="arrow">↗</span>
         </a>
       </div>
@@ -15,10 +15,17 @@
       <section class="hero-section">
         <div class="hero-left">
           <div class="tag-row">
+            <span class="orange-tag">NiroFish 는 MiroFish 를 포크하여 수정되었습니다.</span>
+		    <div class="nav-links">
+			  <a href="https://github.com/666ghj/MiroFish" target="_blank" class="github-link">
+			    MiroFish 홈페이지<span class="arrow">↗</span>
+			  </a>
+			</div>
+          </div>
+          <div class="tag-row">
             <span class="orange-tag">간결하고 범용적인 집단 지능 엔진</span>
             <span class="version-text">/ v0.1-미리보기</span>
           </div>
-          
           <h1 class="main-title">
             어떤 보고서든 업로드하세요<br>
             <span class="gradient-text">즉시 미래를 시뮬레이션</span>

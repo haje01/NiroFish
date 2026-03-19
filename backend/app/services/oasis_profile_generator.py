@@ -1089,8 +1089,6 @@ class OasisProfileGenerator:
                     user_char = f"{profile.bio} {profile.persona}"
                 # 줄바꿈 처리（CSV에서는 공백으로 대체）
                 user_char = user_char.replace('\n', ' ').replace('\r', ' ')
-                # 게시물/댓글은 항상 한국어로 작성하도록 지시
-                user_char = f"{user_char} Always write your posts and comments in Korean."
                 
                 # description: 짧은 소개, 외부 표시용
                 description = profile.bio.replace('\n', ' ').replace('\r', ' ')

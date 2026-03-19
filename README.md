@@ -62,33 +62,27 @@ cp .env.example .env
 
 ```env
 # LLM API 설정 (OpenAI SDK 형식을 지원하는 모든 LLM API)
-# 알리바바 Bailian 플랫폼의 qwen-plus 모델 권장: https://bailian.console.aliyun.com/
-# 소비량이 크므로 먼저 40라운드 미만으로 시뮬레이션을 시도해보세요
+# 소비량이 크므로 먼저 40 라운드 미만으로 시뮬레이션을 시도해보세요
 LLM_API_KEY=your_api_key
-LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-LLM_MODEL_NAME=qwen-plus
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_MODEL_NAME=gpt-5.4-mini
 
 # Neo4j 그래프 데이터베이스 설정 (로컬 자체 호스팅)
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
-NEO4J_PASSWORD=nirofish_password
+NEO4J_PASSWORD=nirofish
 ```
-
-> **참고**
-> OpenAI 이용 시
-> ```
-> LLM_BASE_URL=https://api.openai.com/v1
-> LLM_MODEL_NAME=gpt-4o-mini
-> ```
 
 #### 2. Neo4j 실행
 
 지식 그래프 저장소로 Neo4j를 사용합니다. Docker로 간단히 실행할 수 있습니다:
 
 ```bash
-# Neo4j만 단독 실행 (소스 코드 배포 시)
+# Neo4j 단독 실행
 docker compose up -d neo4j
 ```
+
+> Neo4j 삭제는 `docker compose down`
 
 Neo4j Browser(`http://localhost:7474`)에서 연결을 확인할 수 있습니다.
 (초기 로그인: ID `neo4j`, 비밀번호는 `.env`의 `NEO4J_PASSWORD`)

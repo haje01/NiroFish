@@ -421,7 +421,7 @@ def build_graph():
 
                 # 텍스트 추가 (progress_callback 시그니처: (msg, progress_ratio))
                 def add_progress_callback(msg, progress_ratio):
-                    progress = 15 + int(progress_ratio * 40)  # 15% - 55%
+                    progress = 15 + int(progress_ratio * 75)  # 15% - 90%
                     task_manager.update_task(
                         task_id,
                         message=msg,
@@ -434,29 +434,11 @@ def build_graph():
                     progress=15
                 )
 
-                episode_uuids = builder.add_text_batches(
+                builder.add_text_batches(
                     graph_id,
                     chunks,
-                    batch_size=3,
                     progress_callback=add_progress_callback
                 )
-
-                # Zep 처리 완료 대기 (각 episode의 processed 상태 조회)
-                task_manager.update_task(
-                    task_id,
-                    message="Zep 데이터 처리 대기 중...",
-                    progress=55
-                )
-
-                def wait_progress_callback(msg, progress_ratio):
-                    progress = 55 + int(progress_ratio * 35)  # 55% - 90%
-                    task_manager.update_task(
-                        task_id,
-                        message=msg,
-                        progress=progress
-                    )
-
-                builder._wait_for_episodes(episode_uuids, wait_progress_callback)
 
                 # 그래프 데이터 가져오기
                 task_manager.update_task(
