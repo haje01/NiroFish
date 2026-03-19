@@ -408,7 +408,7 @@ class OntologyGenerator:
         code_lines = [
             '"""',
             '커스텀 엔티티 유형 정의',
-            'MiroFish에 의해 자동 생성, 사회 여론 시뮬레이션용',
+            'NiroFish에 의해 자동 생성, 사회 여론 시뮬레이션용',
             '"""',
             '',
             'from pydantic import Field',

@@ -53,7 +53,7 @@ class GraphBuilderService:
         self,
         text: str,
         ontology: Dict[str, Any],
-        graph_name: str = "MiroFish Graph",
+        graph_name: str = "NiroFish Graph",
         chunk_size: int = None,
         chunk_overlap: int = 50,
         batch_size: int = 3
@@ -175,7 +175,7 @@ class GraphBuilderService:
         Graphiti/Neo4j에서는 별도 그래프 생성 API 없음.
         group_id로 사용할 고유 ID만 발급.
         """
-        graph_id = f"mirofish_{uuid.uuid4().hex[:16]}"
+        graph_id = f"nirofish_{uuid.uuid4().hex[:16]}"
         return graph_id
 
     def set_ontology(self, graph_id: str, ontology: Dict[str, Any]):
@@ -238,7 +238,7 @@ class GraphBuilderService:
                     self._graphiti.add_episode(
                         name=f"chunk_{i}",
                         episode_body=chunk,
-                        source_description="MiroFish knowledge document",
+                        source_description="NiroFish knowledge document",
                         reference_time=datetime.now(timezone.utc),
                         source=EpisodeType.text,
                         group_id=graph_id,

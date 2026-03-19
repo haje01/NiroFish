@@ -17,7 +17,7 @@ from ..services.simulation_runner import SimulationRunner, RunnerStatus
 from ..utils.logger import get_logger
 from ..models.project import ProjectManager
 
-logger = get_logger('mirofish.api.simulation')
+logger = get_logger('nirofish.api.simulation')
 
 
 # Interview 프롬프트 최적화 접두사
@@ -154,7 +154,7 @@ def create_simulation():
     요청 (JSON):
         {
             "project_id": "proj_xxxx",      // 필수
-            "graph_id": "mirofish_xxxx",    // 선택 사항, 미제공 시 project에서 가져옴
+            "graph_id": "nirofish_xxxx",    // 선택 사항, 미제공 시 project에서 가져옴
             "enable_twitter": true,          // 선택 사항, 기본값 true
             "enable_reddit": true            // 선택 사항, 기본값 true
         }
@@ -165,7 +165,7 @@ def create_simulation():
             "data": {
                 "simulation_id": "sim_xxxx",
                 "project_id": "proj_xxxx",
-                "graph_id": "mirofish_xxxx",
+                "graph_id": "nirofish_xxxx",
                 "status": "created",
                 "enable_twitter": true,
                 "enable_reddit": true,
@@ -1383,7 +1383,7 @@ def generate_profiles():
 
     요청 (JSON):
         {
-            "graph_id": "mirofish_xxxx",     // 필수
+            "graph_id": "nirofish_xxxx",     // 필수
             "entity_types": ["Student"],      // 선택 사항
             "use_llm": true,                  // 선택 사항
             "platform": "reddit"              // 선택 사항

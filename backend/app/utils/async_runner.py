@@ -10,7 +10,7 @@ import threading
 
 from .logger import get_logger
 
-logger = get_logger('mirofish.async_runner')
+logger = get_logger('nirofish.async_runner')
 
 
 class AsyncRunner:

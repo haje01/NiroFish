@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 프로젝트 개요
 
-MiroFish는 다중 에이전트 AI 예측 시뮬레이션 플랫폼입니다. 문서를 업로드하면 GraphRAG로 지식 그래프를 구축하고, OASIS 엔진으로 수천 개의 에이전트가 트위터/레딧 환경에서 시뮬레이션하며, ReACT 패턴의 Report Agent가 보고서를 생성합니다.
+NiroFish는 다중 에이전트 AI 예측 시뮬레이션 플랫폼입니다. 문서를 업로드하면 GraphRAG로 지식 그래프를 구축하고, OASIS 엔진으로 수천 개의 에이전트가 트위터/레딧 환경에서 시뮬레이션하며, ReACT 패턴의 Report Agent가 보고서를 생성합니다.
 
 ## 주요 명령어
 

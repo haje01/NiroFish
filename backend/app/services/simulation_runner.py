@@ -23,7 +23,7 @@ from ..utils.logger import get_logger
 from .zep_graph_memory_updater import ZepGraphMemoryManager
 from .simulation_ipc import SimulationIPCClient, CommandType, IPCResponse
 
-logger = get_logger('mirofish.simulation_runner')
+logger = get_logger('nirofish.simulation_runner')
 
 # 정리 함수 등록 여부 표시
 _cleanup_registered = False

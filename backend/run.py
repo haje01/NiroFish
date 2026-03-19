@@ -1,5 +1,5 @@
 """
-MiroFish Backend 시작 진입점
+NiroFish Backend 시작 진입점
 """
 
 import os

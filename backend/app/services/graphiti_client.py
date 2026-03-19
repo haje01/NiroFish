@@ -15,7 +15,7 @@ from ..config import Config
 from ..utils.logger import get_logger
 from ..utils.async_runner import AsyncRunner
 
-logger = get_logger('mirofish.graphiti_client')
+logger = get_logger('nirofish.graphiti_client')
 
 
 class GraphitiClientManager:

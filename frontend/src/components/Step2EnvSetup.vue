@@ -440,7 +440,7 @@
             <div class="rounds-header">
               <div class="header-left">
                 <span class="section-title">시뮬레이션 라운드 설정</span>
-                <span class="section-desc">MiroFish가 현실 <span class="desc-highlight">{{ simulationConfig?.time_config?.total_simulation_hours || '-' }}</span>시간을 자동 계획하며, 각 라운드는 현실 <span class="desc-highlight">{{ simulationConfig?.time_config?.minutes_per_round || '-' }}</span>분의 시간 흐름을 나타냅니다</span>
+                <span class="section-desc">NiroFish가 현실 <span class="desc-highlight">{{ simulationConfig?.time_config?.total_simulation_hours || '-' }}</span>시간을 자동 계획하며, 각 라운드는 현실 <span class="desc-highlight">{{ simulationConfig?.time_config?.minutes_per_round || '-' }}</span>분의 시간 흐름을 나타냅니다</span>
               </div>
               <label class="switch-control">
                 <input type="checkbox" v-model="useCustomRounds">

@@ -22,7 +22,7 @@ from ..utils.logger import get_logger
 from ..utils.async_runner import AsyncRunner
 from .zep_entity_reader import EntityNode, ZepEntityReader
 
-logger = get_logger('mirofish.oasis_profile')
+logger = get_logger('nirofish.oasis_profile')
 
 
 @dataclass

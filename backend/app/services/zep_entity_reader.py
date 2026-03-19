@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from ..utils.logger import get_logger
 from ..utils.graphiti_paging import fetch_all_nodes, fetch_all_edges, fetch_node_edges
 
-logger = get_logger('mirofish.zep_entity_reader')
+logger = get_logger('nirofish.zep_entity_reader')
 
 
 @dataclass

@@ -23,7 +23,7 @@ from ..config import Config
 from ..utils.logger import get_logger
 from .zep_entity_reader import EntityNode, ZepEntityReader
 
-logger = get_logger('mirofish.simulation_config')
+logger = get_logger('nirofish.simulation_config')
 
 # 중국 생활 리듬 시간 설정（베이징 시간 기준）
 CHINA_TIMEZONE_CONFIG = {

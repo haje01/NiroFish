@@ -167,7 +167,7 @@
               <div class="tools-card-avatar">R</div>
               <div class="tools-card-info">
                 <div class="tools-card-name">Report Agent - Chat</div>
-                <div class="tools-card-subtitle">보고서 생성 AI의 빠른 대화 버전으로, 4가지 전문 도구를 호출할 수 있으며 MiroFish의 완전한 메모리를 보유</div>
+                <div class="tools-card-subtitle">보고서 생성 AI의 빠른 대화 버전으로, 4가지 전문 도구를 호출할 수 있으며 NiroFish의 완전한 메모리를 보유</div>
               </div>
               <button class="tools-card-toggle" @click="showToolsDetail = !showToolsDetail">
                 <svg :class="{ 'is-expanded': showToolsDetail }" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">

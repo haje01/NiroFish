@@ -2,9 +2,9 @@
   <div class="home-container">
     <!-- 상단 내비게이션 바 -->
     <nav class="navbar">
-      <div class="nav-brand">MIROFISH</div>
+      <div class="nav-brand">NIROFISH</div>
       <div class="nav-links">
-        <a href="https://github.com/666ghj/MiroFish" target="_blank" class="github-link">
+        <a href="https://github.com/666ghj/NiroFish" target="_blank" class="github-link">
           Github 홈페이지 방문 <span class="arrow">↗</span>
         </a>
       </div>
@@ -26,7 +26,7 @@
           
           <div class="hero-desc">
             <p>
-              단 한 단락의 텍스트만 있어도, <span class=”highlight-bold”>MiroFish</span>는 그 안에 담긴 현실의 씨앗을 기반으로 최대 <span class=”highlight-orange”>백만 명 규모의 Agent</span>로 구성된 병렬 세계를 완전 자동으로 생성합니다. 전지적 시점에서 변수를 주입하고, 복잡한 집단 상호작용 속에서 동적 환경의 <span class=”highlight-code”>”국소 최적해”</span>를 탐색하세요
+              단 한 단락의 텍스트만 있어도, <span class=”highlight-bold”>NiroFish</span>는 그 안에 담긴 현실의 씨앗을 기반으로 최대 <span class=”highlight-orange”>백만 명 규모의 Agent</span>로 구성된 병렬 세계를 완전 자동으로 생성합니다. 전지적 시점에서 변수를 주입하고, 복잡한 집단 상호작용 속에서 동적 환경의 <span class=”highlight-code”>”국소 최적해”</span>를 탐색하세요
             </p>
             <p class="slogan-text">
               미래를 Agent 군집 속에서 먼저 경험하고, 수많은 시뮬레이션 끝에 최선의 결정을 내리세요<span class="blinking-cursor">_</span>
@@ -39,7 +39,7 @@
         <div class="hero-right">
           <!-- 로고 영역 -->
           <div class="logo-container">
-            <img src="../assets/logo/MiroFish_logo_left.jpeg" alt="MiroFish Logo" class="hero-logo" />
+            <img src="../assets/logo/NiroFish_logo_left.jpeg" alt="NiroFish Logo" class="hero-logo" />
           </div>
           
           <button class="scroll-down-btn" @click="scrollToBottom">
@@ -180,7 +180,7 @@
                   rows="6"
                   :disabled="loading"
                 ></textarea>
-                <div class="model-badge">엔진: MiroFish-V1.0</div>
+                <div class="model-badge">엔진: NiroFish-V1.0</div>
               </div>
             </div>
 

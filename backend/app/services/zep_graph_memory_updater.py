@@ -17,7 +17,7 @@ from graphiti_core.nodes import EpisodeType
 from ..utils.logger import get_logger
 from ..utils.async_runner import AsyncRunner
 
-logger = get_logger('mirofish.zep_graph_memory_updater')
+logger = get_logger('nirofish.zep_graph_memory_updater')
 
 # OASIS env_template 지시문이 게시물 내용에 섞이는 오류를 필터링하기 위한 패턴
 _OASIS_INSTRUCTION_PHRASES = [

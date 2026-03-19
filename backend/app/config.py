@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 
 # 프로젝트 루트 디렉터리의 .env 파일 로드
-# 경로: MiroFish/.env (backend/app/config.py 기준 상대 경로)
+# 경로: NiroFish/.env (backend/app/config.py 기준 상대 경로)
 project_root_env = os.path.join(os.path.dirname(__file__), '../../.env')
 
 if os.path.exists(project_root_env):
@@ -21,7 +21,7 @@ class Config:
     """Flask 설정 클래스"""
 
     # Flask 설정
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'mirofish-secret-key')
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'nirofish-secret-key')
     DEBUG = os.environ.get('FLASK_DEBUG', 'True').lower() == 'true'
 
     # JSON 설정 - ASCII 이스케이프 비활성화, 한글 및 유니코드 문자를 직접 표시 (\uXXXX 형식 대신)
@@ -35,7 +35,7 @@ class Config:
     # Neo4j 설정 (Graphiti 백엔드)
     NEO4J_URI = os.environ.get('NEO4J_URI', 'bolt://localhost:7687')
     NEO4J_USER = os.environ.get('NEO4J_USER', 'neo4j')
-    NEO4J_PASSWORD = os.environ.get('NEO4J_PASSWORD', 'mirofish_password')
+    NEO4J_PASSWORD = os.environ.get('NEO4J_PASSWORD', 'nirofish_password')
 
     # 파일 업로드 설정
     MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB

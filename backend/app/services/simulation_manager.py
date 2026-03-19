@@ -18,7 +18,7 @@ from .zep_entity_reader import ZepEntityReader, FilteredEntities
 from .oasis_profile_generator import OasisProfileGenerator, OasisAgentProfile
 from .simulation_config_generator import SimulationConfigGenerator, SimulationParameters
 
-logger = get_logger('mirofish.simulation')
+logger = get_logger('nirofish.simulation')
 
 
 class SimulationStatus(str, Enum):
@@ -533,7 +533,7 @@ class SimulationManager:
                 "parallel": f"python {scripts_dir}/run_parallel_simulation.py --config {config_path}",
             },
             "instructions": (
-                f"1. conda 환경 활성화: conda activate MiroFish\n"
+                f"1. conda 환경 활성화: conda activate NiroFish\n"
                 f"2. 시뮬레이션 실행 (스크립트 위치: {scripts_dir}):\n"
                 f"   - Twitter만 실행: python {scripts_dir}/run_twitter_simulation.py --config {config_path}\n"
                 f"   - Reddit만 실행: python {scripts_dir}/run_reddit_simulation.py --config {config_path}\n"

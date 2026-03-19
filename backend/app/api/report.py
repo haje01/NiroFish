@@ -16,7 +16,7 @@ from ..models.project import ProjectManager
 from ..models.task import TaskManager, TaskStatus
 from ..utils.logger import get_logger
 
-logger = get_logger('mirofish.api.report')
+logger = get_logger('nirofish.api.report')
 
 
 # ============== 보고서 생성 인터페이스 ==============
@@ -935,7 +935,7 @@ def search_graph_tool():
 
     요청 (JSON):
         {
-            "graph_id": "mirofish_xxxx",
+            "graph_id": "nirofish_xxxx",
             "query": "검색 쿼리",
             "limit": 10
         }
@@ -983,7 +983,7 @@ def get_graph_statistics_tool():
 
     요청 (JSON):
         {
-            "graph_id": "mirofish_xxxx"
+            "graph_id": "nirofish_xxxx"
         }
     """
     try:

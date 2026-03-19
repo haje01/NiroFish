@@ -2,7 +2,7 @@
   <div class="process-page">
     <!-- 상단 내비게이션 바 -->
     <nav class="navbar">
-      <div class="nav-brand" @click="goHome">MIROFISH</div>
+      <div class="nav-brand" @click="goHome">NIROFISH</div>
 
       <!-- 가운데 단계 표시기 -->
       <div class="nav-center">

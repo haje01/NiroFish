@@ -1,11 +1,11 @@
 [project]
-name = "mirofish-backend"
+name = "nirofish-backend"
 version = "0.1.0"
-description = "MiroFish - 간결하고 범용적인 군집 지능 엔진, 만물을 예측하다"
+description = "NiroFish - 간결하고 범용적인 군집 지능 엔진, 만물을 예측하다"
 requires-python = ">=3.11"
 license = { text = "AGPL-3.0" }
 authors = [
-    { name = "MiroFish Team" }
+    { name = "NiroFish Team" }
 ]
 
 dependencies = [

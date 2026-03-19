@@ -20,7 +20,7 @@ from ..utils.llm_client import LLMClient
 from ..utils.graphiti_paging import fetch_all_nodes, fetch_all_edges, fetch_node_by_uuid
 from ..utils.async_runner import AsyncRunner
 
-logger = get_logger('mirofish.zep_tools')
+logger = get_logger('nirofish.zep_tools')
 
 
 @dataclass

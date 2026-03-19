@@ -19,7 +19,7 @@ from ..models.task import TaskManager, TaskStatus
 from ..models.project import ProjectManager, ProjectStatus
 
 # 로거 가져오기
-logger = get_logger('mirofish.api')
+logger = get_logger('nirofish.api')
 
 
 def allowed_file(filename: str) -> bool:
@@ -338,7 +338,7 @@ def build_graph():
             project.error = None
 
         # 설정 가져오기
-        graph_name = data.get('graph_name', project.name or 'MiroFish Graph')
+        graph_name = data.get('graph_name', project.name or 'NiroFish Graph')
         chunk_size = data.get('chunk_size', project.chunk_size or Config.DEFAULT_CHUNK_SIZE)
         chunk_overlap = data.get('chunk_overlap', project.chunk_overlap or Config.DEFAULT_CHUNK_OVERLAP)
 
@@ -374,7 +374,7 @@ def build_graph():
 
         # 백그라운드 작업 시작
         def build_task():
-            build_logger = get_logger('mirofish.build')
+            build_logger = get_logger('nirofish.build')
             try:
                 build_logger.info(f"[{task_id}] 그래프 구축 시작...")
                 task_manager.update_task(

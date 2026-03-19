@@ -11,7 +11,7 @@ from graphiti_core import Graphiti
 
 from .logger import get_logger
 
-logger = get_logger('mirofish.graphiti_paging')
+logger = get_logger('nirofish.graphiti_paging')
 
 _MAX_NODES = 2000
 _MAX_EDGES = 5000
