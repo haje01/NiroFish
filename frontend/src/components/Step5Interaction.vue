@@ -1,0 +1,3022 @@
+<template>
+  <div class="interaction-panel">
+    <!-- Main Split Layout -->
+    <div class="main-split-layout">
+      <!-- LEFT PANEL: Report Style -->
+      <div class="left-panel report-style" ref="leftPanel">
+        <div v-if="reportOutline" class="report-content-wrapper">
+          <!-- Report Header -->
+          <div class="report-header-block">
+            <div class="report-meta">
+              <span class="report-tag">Prediction Report</span>
+              <span class="report-id">ID: {{ reportId || 'REF-2024-X92' }}</span>
+            </div>
+            <h1 class="main-title">{{ reportOutline.title }}</h1>
+            <p class="sub-title">{{ reportOutline.summary }}</p>
+            <div class="header-divider"></div>
+          </div>
+
+          <!-- Sections List -->
+          <div class="sections-list">
+            <div 
+              v-for="(section, idx) in reportOutline.sections" 
+              :key="idx"
+              class="report-section-item"
+              :class="{ 
+                'is-active': currentSectionIndex === idx + 1,
+                'is-completed': isSectionCompleted(idx + 1),
+                'is-pending': !isSectionCompleted(idx + 1) && currentSectionIndex !== idx + 1
+              }"
+            >
+              <div class="section-header-row" @click="toggleSectionCollapse(idx)" :class="{ 'clickable': isSectionCompleted(idx + 1) }">
+                <span class="section-number">{{ String(idx + 1).padStart(2, '0') }}</span>
+                <h3 class="section-title">{{ section.title }}</h3>
+                <svg 
+                  v-if="isSectionCompleted(idx + 1)" 
+                  class="collapse-icon" 
+                  :class="{ 'is-collapsed': collapsedSections.has(idx) }"
+                  viewBox="0 0 24 24" 
+                  width="20" 
+                  height="20" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  stroke-width="2"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+              
+              <div class="section-body" v-show="!collapsedSections.has(idx)">
+                <!-- Completed Content -->
+                <div v-if="generatedSections[idx + 1]" class="generated-content" v-html="renderMarkdown(generatedSections[idx + 1])"></div>
+                
+                <!-- Loading State -->
+                <div v-else-if="currentSectionIndex === idx + 1" class="loading-state">
+                  <div class="loading-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <circle cx="12" cy="12" r="10" stroke-width="4" stroke="#E5E7EB"></circle>
+                      <path d="M12 2a10 10 0 0 1 10 10" stroke-width="4" stroke="#4B5563" stroke-linecap="round"></path>
+                    </svg>
+                  </div>
+                  <span class="loading-text">{{ section.title }} 생성 중...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Waiting State -->
+        <div v-if="!reportOutline" class="waiting-placeholder">
+          <div class="waiting-animation">
+            <div class="waiting-ring"></div>
+            <div class="waiting-ring"></div>
+            <div class="waiting-ring"></div>
+          </div>
+          <span class="waiting-text">Waiting for Report Agent...</span>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL: Interaction Interface -->
+      <div class="right-panel" ref="rightPanel">
+        <!-- Unified Action Bar - Professional Design -->
+        <div class="action-bar">
+        <div class="action-bar-header">
+          <svg class="action-bar-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <div class="action-bar-text">
+            <span class="action-bar-title">Interactive Tools</span>
+            <span class="action-bar-subtitle mono">{{ profiles.length }} agents available</span>
+          </div>
+        </div>
+          <div class="action-bar-tabs">
+            <button 
+              class="tab-pill"
+              :class="{ active: activeTab === 'chat' && chatTarget === 'report_agent' }"
+              @click="selectReportAgentChat"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+              </svg>
+              <span>Report Agent와 대화</span>
+            </button>
+            <div class="agent-dropdown" v-if="profiles.length > 0">
+              <button 
+                class="tab-pill agent-pill"
+                :class="{ active: activeTab === 'chat' && chatTarget === 'agent' }"
+                @click="toggleAgentDropdown"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>{{ selectedAgent ? selectedAgent.username : '세계의 임의 개체와 대화' }}</span>
+                <svg class="dropdown-arrow" :class="{ open: showAgentDropdown }" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+              <div v-if="showAgentDropdown" class="dropdown-menu">
+                <div class="dropdown-header">대화 상대 선택</div>
+                <div 
+                  v-for="(agent, idx) in profiles" 
+                  :key="idx"
+                  class="dropdown-item"
+                  @click="selectAgent(agent, idx)"
+                >
+                  <div class="agent-avatar">{{ (agent.username || 'A')[0] }}</div>
+                  <div class="agent-info">
+                    <span class="agent-name">{{ agent.username }}</span>
+                    <span class="agent-role">{{ agent.profession || '직업 미상' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-divider"></div>
+            <button
+              class="tab-pill survey-pill"
+              :class="{ active: activeTab === 'survey' }"
+              @click="selectSurveyTab"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 11l3 3L22 4"></path>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+              <span>세계에 설문 조사 보내기</span>
+            </button>
+            <button
+              class="tab-pill vote-pill"
+              :class="{ active: activeTab === 'vote' }"
+              @click="activeTab = 'vote'"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 20V10"></path>
+                <path d="M12 20V4"></path>
+                <path d="M6 20v-6"></path>
+              </svg>
+              <span>세계에 투표 보내기</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Chat Mode -->
+        <div v-if="activeTab === 'chat'" class="chat-container">
+
+          <!-- Report Agent Tools Card -->
+          <div v-if="chatTarget === 'report_agent'" class="report-agent-tools-card">
+            <div class="tools-card-header">
+              <div class="tools-card-avatar">R</div>
+              <div class="tools-card-info">
+                <div class="tools-card-name">Report Agent - Chat</div>
+                <div class="tools-card-subtitle">보고서 생성 AI의 빠른 대화 버전으로, 4가지 전문 도구를 호출할 수 있으며 MiroFish의 완전한 메모리를 보유</div>
+              </div>
+              <button class="tools-card-toggle" @click="showToolsDetail = !showToolsDetail">
+                <svg :class="{ 'is-expanded': showToolsDetail }" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+            <div v-if="showToolsDetail" class="tools-card-body">
+              <div class="tools-grid">
+                <div class="tool-item tool-purple">
+                  <div class="tool-icon-wrapper">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.5V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.5A7 7 0 0 0 12 2z"></path>
+                    </svg>
+                  </div>
+                  <div class="tool-content">
+                    <div class="tool-name">InsightForge 심층 귀인</div>
+                    <div class="tool-desc">현실 세계 시드 데이터와 시뮬레이션 환경 상태를 정렬하고, Global/Local Memory 메커니즘을 결합하여 시공간을 넘나드는 심층 귀인 분석 제공</div>
+                  </div>
+                </div>
+                <div class="tool-item tool-blue">
+                  <div class="tool-icon-wrapper">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                  </div>
+                  <div class="tool-content">
+                    <div class="tool-name">PanoramaSearch 파노라마 추적</div>
+                    <div class="tool-desc">그래프 구조 기반 너비 탐색 알고리즘으로 이벤트 전파 경로를 재구성하고 전체 정보 흐름의 토폴로지 구조 포착</div>
+                  </div>
+                </div>
+                <div class="tool-item tool-orange">
+                  <div class="tool-icon-wrapper">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                  </div>
+                  <div class="tool-content">
+                    <div class="tool-name">QuickSearch 빠른 검색</div>
+                    <div class="tool-desc">GraphRAG 기반 즉시 쿼리 인터페이스로 인덱스 효율을 최적화하여 구체적인 노드 속성과 개별 사실을 빠르게 추출</div>
+                  </div>
+                </div>
+                <div class="tool-item tool-green">
+                  <div class="tool-icon-wrapper">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                  </div>
+                  <div class="tool-content">
+                    <div class="tool-name">InterviewSubAgent 가상 인터뷰</div>
+                    <div class="tool-desc">자율적인 인터뷰 방식으로 시뮬레이션 세계의 개체와 병렬로 다회 대화를 진행하여 비구조화된 의견 데이터와 심리 상태 수집</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Agent Profile Card -->
+          <div v-if="chatTarget === 'agent' && selectedAgent" class="agent-profile-card">
+            <div class="profile-card-header">
+              <div class="profile-card-avatar">{{ (selectedAgent.username || 'A')[0] }}</div>
+              <div class="profile-card-info">
+                <div class="profile-card-name">{{ selectedAgent.username }}</div>
+                <div class="profile-card-meta">
+                  <span v-if="selectedAgent.name" class="profile-card-handle">@{{ selectedAgent.name }}</span>
+                  <span class="profile-card-profession">{{ selectedAgent.profession || '직업 미상' }}</span>
+                </div>
+              </div>
+              <button class="profile-card-toggle" @click="showFullProfile = !showFullProfile">
+                <svg :class="{ 'is-expanded': showFullProfile }" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+            <div v-if="showFullProfile && selectedAgent.bio" class="profile-card-body">
+              <div class="profile-card-bio">
+                <div class="profile-card-label">소개</div>
+                <p>{{ selectedAgent.bio }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Messages -->
+          <div class="chat-messages" ref="chatMessages">
+            <div v-if="chatHistory.length === 0" class="chat-empty">
+              <div class="empty-icon">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </div>
+              <p class="empty-text">
+                {{ chatTarget === 'report_agent' ? 'Report Agent와 대화하여 보고서 내용을 심층 파악하세요' : '시뮬레이션 개체와 대화하여 그들의 관점을 알아보세요' }}
+              </p>
+            </div>
+            <div 
+              v-for="(msg, idx) in chatHistory" 
+              :key="idx"
+              class="chat-message"
+              :class="msg.role"
+            >
+              <div class="message-avatar">
+                <span v-if="msg.role === 'user'">U</span>
+                <span v-else>{{ msg.role === 'assistant' && chatTarget === 'report_agent' ? 'R' : (selectedAgent?.username?.[0] || 'A') }}</span>
+              </div>
+              <div class="message-content">
+                <div class="message-header">
+                  <span class="sender-name">
+                    {{ msg.role === 'user' ? 'You' : (chatTarget === 'report_agent' ? 'Report Agent' : (selectedAgent?.username || 'Agent')) }}
+                  </span>
+                  <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
+                </div>
+                <div class="message-text" v-html="renderMarkdown(msg.content)"></div>
+              </div>
+            </div>
+            <div v-if="isSending" class="chat-message assistant">
+              <div class="message-avatar">
+                <span>{{ chatTarget === 'report_agent' ? 'R' : (selectedAgent?.username?.[0] || 'A') }}</span>
+              </div>
+              <div class="message-content">
+                <div class="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Input -->
+          <div class="chat-input-area">
+            <textarea 
+              v-model="chatInput"
+              class="chat-input"
+              placeholder="질문을 입력하세요..."
+              @keydown.enter.exact.prevent="sendMessage"
+              :disabled="isSending || (!selectedAgent && chatTarget === 'agent')"
+              rows="1"
+              ref="chatInputRef"
+            ></textarea>
+            <button 
+              class="send-btn"
+              @click="sendMessage"
+              :disabled="!chatInput.trim() || isSending || (!selectedAgent && chatTarget === 'agent')"
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Vote Mode -->
+        <div v-if="activeTab === 'vote'" class="survey-container">
+          <div v-if="voteResults.length === 0" class="survey-setup">
+            <div class="setup-section">
+              <div class="section-header">
+                <span class="section-title">투표 대상 선택</span>
+                <span class="selection-count">선택됨 {{ selectedAgents.size }} / {{ profiles.length }}</span>
+              </div>
+              <div class="agents-grid">
+                <label
+                  v-for="(agent, idx) in profiles"
+                  :key="idx"
+                  class="agent-checkbox"
+                  :class="{ checked: selectedAgents.has(idx) }"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="selectedAgents.has(idx)"
+                    @change="toggleAgentSelection(idx)"
+                  >
+                  <div class="checkbox-avatar">{{ (agent.username || 'A')[0] }}</div>
+                  <div class="checkbox-info">
+                    <span class="checkbox-name">{{ agent.username }}</span>
+                    <span class="checkbox-role">{{ agent.profession || '직업 미상' }}</span>
+                  </div>
+                  <div class="checkbox-indicator">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </div>
+                </label>
+              </div>
+              <div class="selection-actions">
+                <button class="action-link" @click="selectAllAgents">전체 선택</button>
+                <span class="action-divider">|</span>
+                <button class="action-link" @click="clearAgentSelection">선택 해제</button>
+              </div>
+            </div>
+
+            <div class="setup-section">
+              <div class="section-header">
+                <span class="section-title">투표 안건</span>
+              </div>
+              <textarea
+                v-model="voteQuestion"
+                class="survey-input"
+                placeholder="예) 주식 시장이 한 달 내에 상승할 것으로 보십니까?"
+                rows="2"
+              ></textarea>
+            </div>
+
+            <div class="setup-section">
+              <div class="section-header">
+                <span class="section-title">선택지</span>
+                <button class="action-link" @click="addVoteChoice">+ 추가</button>
+              </div>
+              <div class="vote-choices-editor">
+                <div
+                  v-for="(choice, idx) in voteChoices"
+                  :key="idx"
+                  class="vote-choice-edit-row"
+                >
+                  <span class="vote-choice-num">{{ idx }}</span>
+                  <input
+                    v-model="voteChoices[idx]"
+                    class="vote-choice-input"
+                    :placeholder="`선택지 ${idx} 레이블`"
+                  />
+                  <button
+                    v-if="voteChoices.length > 2"
+                    class="vote-choice-remove"
+                    @click="removeVoteChoice(idx)"
+                  >✕</button>
+                </div>
+              </div>
+              <p class="vote-hint">※ 에이전트는 위 번호(0, 1, …) 중 하나의 숫자로만 답합니다.</p>
+            </div>
+
+            <button
+              class="survey-submit-btn"
+              :disabled="selectedAgents.size === 0 || !voteQuestion.trim() || voteChoices.some(c => !c.trim()) || isVoting"
+              @click="submitVote"
+            >
+              <span v-if="isVoting" class="loading-spinner"></span>
+              <span v-else>투표 보내기</span>
+            </button>
+          </div>
+
+          <!-- Vote Results -->
+          <div v-if="voteResults.length > 0" class="survey-results">
+            <div class="results-header" style="margin-bottom:10px;">
+              <span class="results-title">투표 집계 결과</span>
+              <button class="new-vote-btn" @click="voteResults = []">＋ 새 투표</button>
+            </div>
+            <!-- 집계 통계 -->
+            <div class="vote-stats-card">
+              <div class="results-header">
+                <span class="results-title">{{ voteQuestion }}</span>
+                <span class="results-count">{{ voteResults.length }}명 참여</span>
+              </div>
+              <div class="vote-stats-body">
+                <div class="vote-choices">
+                  <div
+                    v-for="(info, choice) in voteChoiceCounts"
+                    :key="choice"
+                    class="vote-choice-row"
+                  >
+                    <span class="vote-choice-label">{{ voteChoiceLabel(choice) }}</span>
+                    <div class="vote-choice-bar-wrap">
+                      <div class="vote-choice-bar" :style="{ width: info.pct + '%' }"></div>
+                    </div>
+                    <span class="vote-choice-pct">{{ info.pct }}% ({{ info.count }}명)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 개별 응답 -->
+            <div class="results-header" style="margin-top:12px;">
+              <span class="results-title">개별 응답</span>
+            </div>
+            <div class="results-list">
+              <div
+                v-for="(result, idx) in voteResults"
+                :key="idx"
+                class="result-card"
+              >
+                <div class="result-header">
+                  <div class="result-avatar">{{ (result.agent_name || 'A')[0] }}</div>
+                  <div class="result-info">
+                    <span class="result-name">{{ result.agent_name }}</span>
+                    <span class="result-role">{{ result.profession || '직업 미상' }}</span>
+                  </div>
+                  <div class="vote-badge" :class="result.rawValue === null ? 'vote-badge-invalid' : 'vote-badge-valid'">
+                    {{ result.rawValue !== null ? voteChoiceLabel(result.rawValue) : '무효' }}
+                  </div>
+                </div>
+                <div v-if="result.rawValue === null && result.rawResponse" class="vote-invalid-response">
+                  {{ result.rawResponse }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Survey Mode -->
+        <div v-if="activeTab === 'survey'" class="survey-container">
+          <!-- Survey Setup -->
+          <div class="survey-setup">
+            <div class="setup-section">
+              <div class="section-header">
+                <span class="section-title">조사 대상 선택</span>
+                <span class="selection-count">선택됨 {{ selectedAgents.size }} / {{ profiles.length }}</span>
+              </div>
+              <div class="agents-grid">
+                <label 
+                  v-for="(agent, idx) in profiles" 
+                  :key="idx"
+                  class="agent-checkbox"
+                  :class="{ checked: selectedAgents.has(idx) }"
+                >
+                  <input 
+                    type="checkbox" 
+                    :checked="selectedAgents.has(idx)"
+                    @change="toggleAgentSelection(idx)"
+                  >
+                  <div class="checkbox-avatar">{{ (agent.username || 'A')[0] }}</div>
+                  <div class="checkbox-info">
+                    <span class="checkbox-name">{{ agent.username }}</span>
+                    <span class="checkbox-role">{{ agent.profession || '직업 미상' }}</span>
+                  </div>
+                  <div class="checkbox-indicator">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </div>
+                </label>
+              </div>
+              <div class="selection-actions">
+                <button class="action-link" @click="selectAllAgents">전체 선택</button>
+                <span class="action-divider">|</span>
+                <button class="action-link" @click="clearAgentSelection">선택 해제</button>
+              </div>
+            </div>
+
+            <div class="setup-section">
+              <div class="section-header">
+                <span class="section-title">설문 질문</span>
+              </div>
+              <textarea 
+                v-model="surveyQuestion"
+                class="survey-input"
+                placeholder="선택된 모든 대상에게 물어볼 질문을 입력하세요..."
+                rows="3"
+              ></textarea>
+            </div>
+
+            <button 
+              class="survey-submit-btn"
+              :disabled="selectedAgents.size === 0 || !surveyQuestion.trim() || isSurveying"
+              @click="submitSurvey"
+            >
+              <span v-if="isSurveying" class="loading-spinner"></span>
+              <span v-else>설문 보내기</span>
+            </button>
+          </div>
+
+          <!-- Survey Results -->
+          <div v-if="surveyResults.length > 0" class="survey-results">
+            <div class="results-header">
+              <span class="results-title">조사 결과</span>
+              <span class="results-count">{{ surveyResults.length }} 개 응답</span>
+            </div>
+            <div class="results-list">
+              <div 
+                v-for="(result, idx) in surveyResults" 
+                :key="idx"
+                class="result-card"
+              >
+                <div class="result-header">
+                  <div class="result-avatar">{{ (result.agent_name || 'A')[0] }}</div>
+                  <div class="result-info">
+                    <span class="result-name">{{ result.agent_name }}</span>
+                    <span class="result-role">{{ result.profession || '직업 미상' }}</span>
+                  </div>
+                </div>
+                <div class="result-question">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                  </svg>
+                  <span>{{ result.question }}</span>
+                </div>
+                <div class="result-answer" v-html="renderMarkdown(result.answer)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { chatWithReport, getReport, getAgentLog } from '../api/report'
+import { interviewAgents, getSimulationProfilesRealtime } from '../api/simulation'
+
+const props = defineProps({
+  reportId: String,
+  simulationId: String
+})
+
+const emit = defineEmits(['add-log', 'update-status'])
+
+// State
+const activeTab = ref('chat')
+const chatTarget = ref('report_agent')
+const showAgentDropdown = ref(false)
+const selectedAgent = ref(null)
+const selectedAgentIndex = ref(null)
+const showFullProfile = ref(true)
+const showToolsDetail = ref(true)
+
+// Chat State
+const chatInput = ref('')
+const chatHistory = ref([])
+const chatHistoryCache = ref({}) // 모든 대화 기록 캐시: { 'report_agent': [], 'agent_0': [], 'agent_1': [], ... }
+const isSending = ref(false)
+const chatMessages = ref(null)
+const chatInputRef = ref(null)
+
+// Survey State
+const selectedAgents = ref(new Set())
+const surveyQuestion = ref('')
+const surveyResults = ref([])
+const isSurveying = ref(false)
+
+// Vote State
+const voteQuestion = ref('')
+const voteChoices = ref(['찬성', '반대'])
+const voteResults = ref([])
+const isVoting = ref(false)
+
+const addVoteChoice = () => voteChoices.value.push('')
+const removeVoteChoice = (idx) => voteChoices.value.splice(idx, 1)
+
+const voteChoiceLabel = (numOrKey) => {
+  const n = parseInt(numOrKey, 10)
+  if (!isNaN(n) && n >= 0 && n < voteChoices.value.length) {
+    return `${n}: ${voteChoices.value[n]}`
+  }
+  return String(numOrKey)
+}
+
+const voteChoiceCounts = computed(() => {
+  const valid = voteResults.value.filter(r => r.rawValue !== null)
+  if (valid.length === 0) return {}
+  const counts = {}
+  valid.forEach(r => {
+    const key = String(r.rawValue)
+    counts[key] = (counts[key] || 0) + 1
+  })
+  const result = {}
+  Object.keys(counts).sort((a, b) => Number(a) - Number(b)).forEach(k => {
+    result[k] = { count: counts[k], pct: Math.round((counts[k] / valid.length) * 100) }
+  })
+  return result
+})
+
+// Report Data
+const reportOutline = ref(null)
+const generatedSections = ref({})
+const collapsedSections = ref(new Set())
+const currentSectionIndex = ref(null)
+const profiles = ref([])
+
+// Helper Methods
+const isSectionCompleted = (sectionIndex) => {
+  return !!generatedSections.value[sectionIndex]
+}
+
+// Refs
+const leftPanel = ref(null)
+const rightPanel = ref(null)
+
+// Methods
+const addLog = (msg) => {
+  emit('add-log', msg)
+}
+
+const toggleSectionCollapse = (idx) => {
+  if (!generatedSections.value[idx + 1]) return
+  const newSet = new Set(collapsedSections.value)
+  if (newSet.has(idx)) {
+    newSet.delete(idx)
+  } else {
+    newSet.add(idx)
+  }
+  collapsedSections.value = newSet
+}
+
+const selectChatTarget = (target) => {
+  chatTarget.value = target
+  if (target === 'report_agent') {
+    showAgentDropdown.value = false
+  }
+}
+
+// 현재 대화 기록을 캐시에 저장
+const saveChatHistory = () => {
+  if (chatHistory.value.length === 0) return
+  
+  if (chatTarget.value === 'report_agent') {
+    chatHistoryCache.value['report_agent'] = [...chatHistory.value]
+  } else if (selectedAgentIndex.value !== null) {
+    chatHistoryCache.value[`agent_${selectedAgentIndex.value}`] = [...chatHistory.value]
+  }
+}
+
+const selectReportAgentChat = () => {
+  // 현재 대화 기록 저장
+  saveChatHistory()
+
+  activeTab.value = 'chat'
+  chatTarget.value = 'report_agent'
+  selectedAgent.value = null
+  selectedAgentIndex.value = null
+  showAgentDropdown.value = false
+
+  // Report Agent의 대화 기록 복원
+  chatHistory.value = chatHistoryCache.value['report_agent'] || []
+}
+
+const selectSurveyTab = () => {
+  activeTab.value = 'survey'
+  selectedAgent.value = null
+  selectedAgentIndex.value = null
+  showAgentDropdown.value = false
+}
+
+const toggleAgentDropdown = () => {
+  showAgentDropdown.value = !showAgentDropdown.value
+  if (showAgentDropdown.value) {
+    activeTab.value = 'chat'
+    chatTarget.value = 'agent'
+  }
+}
+
+const selectAgent = (agent, idx) => {
+  // 현재 대화 기록 저장
+  saveChatHistory()
+
+  selectedAgent.value = agent
+  selectedAgentIndex.value = idx
+  chatTarget.value = 'agent'
+  showAgentDropdown.value = false
+
+  // 해당 Agent의 대화 기록 복원
+  chatHistory.value = chatHistoryCache.value[`agent_${idx}`] || []
+  addLog(`대화 상대 선택: ${agent.username}`)
+}
+
+const formatTime = (timestamp) => {
+  if (!timestamp) return ''
+  try {
+    return new Date(timestamp).toLocaleTimeString('en-US', { 
+      hour12: false, 
+      hour: '2-digit', 
+      minute: '2-digit'
+    })
+  } catch {
+    return ''
+  }
+}
+
+const renderMarkdown = (content) => {
+  if (!content) return ''
+  
+  let processedContent = content.replace(/^##\s+.+\n+/, '')
+  let html = processedContent.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="code-block"><code>$2</code></pre>')
+  html = html.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
+  html = html.replace(/^#### (.+)$/gm, '<h5 class="md-h5">$1</h5>')
+  html = html.replace(/^### (.+)$/gm, '<h4 class="md-h4">$1</h4>')
+  html = html.replace(/^## (.+)$/gm, '<h3 class="md-h3">$1</h3>')
+  html = html.replace(/^# (.+)$/gm, '<h2 class="md-h2">$1</h2>')
+  html = html.replace(/^> (.+)$/gm, '<blockquote class="md-quote">$1</blockquote>')
+  
+  // 리스트 처리 - 중첩 리스트 지원
+  html = html.replace(/^(\s*)- (.+)$/gm, (match, indent, text) => {
+    const level = Math.floor(indent.length / 2)
+    return `<li class="md-li" data-level="${level}">${text}</li>`
+  })
+  html = html.replace(/^(\s*)(\d+)\. (.+)$/gm, (match, indent, num, text) => {
+    const level = Math.floor(indent.length / 2)
+    return `<li class="md-oli" data-level="${level}">${text}</li>`
+  })
+  
+  // 비순서 리스트 감싸기
+  html = html.replace(/(<li class="md-li"[^>]*>.*?<\/li>\s*)+/g, '<ul class="md-ul">$&</ul>')
+  // 순서 리스트 감싸기
+  html = html.replace(/(<li class="md-oli"[^>]*>.*?<\/li>\s*)+/g, '<ol class="md-ol">$&</ol>')
+
+  // 리스트 항목 사이의 모든 공백 정리
+  html = html.replace(/<\/li>\s+<li/g, '</li><li')
+  // 리스트 시작 태그 뒤 공백 정리
+  html = html.replace(/<ul class="md-ul">\s+/g, '<ul class="md-ul">')
+  html = html.replace(/<ol class="md-ol">\s+/g, '<ol class="md-ol">')
+  // 리스트 종료 태그 앞 공백 정리
+  html = html.replace(/\s+<\/ul>/g, '</ul>')
+  html = html.replace(/\s+<\/ol>/g, '</ol>')
+  
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>')
+  html = html.replace(/_(.+?)_/g, '<em>$1</em>')
+  html = html.replace(/^---$/gm, '<hr class="md-hr">')
+  html = html.replace(/\n\n/g, '</p><p class="md-p">')
+  html = html.replace(/\n/g, '<br>')
+  html = '<p class="md-p">' + html + '</p>'
+  html = html.replace(/<p class="md-p"><\/p>/g, '')
+  html = html.replace(/<p class="md-p">(<h[2-5])/g, '$1')
+  html = html.replace(/(<\/h[2-5]>)<\/p>/g, '$1')
+  html = html.replace(/<p class="md-p">(<ul|<ol|<blockquote|<pre|<hr)/g, '$1')
+  html = html.replace(/(<\/ul>|<\/ol>|<\/blockquote>|<\/pre>)<\/p>/g, '$1')
+  // 블록 레벨 요소 앞뒤의 <br> 태그 정리
+  html = html.replace(/<br>\s*(<ul|<ol|<blockquote)/g, '$1')
+  html = html.replace(/(<\/ul>|<\/ol>|<\/blockquote>)\s*<br>/g, '$1')
+  // <p><br>이 블록 레벨 요소 바로 앞에 오는 경우 정리 (불필요한 빈 줄로 인해 발생)
+  html = html.replace(/<p class="md-p">(<br>\s*)+(<ul|<ol|<blockquote|<pre|<hr)/g, '$2')
+  // 연속된 <br> 태그 정리
+  html = html.replace(/(<br>\s*){2,}/g, '<br>')
+  // 블록 레벨 요소 뒤 단락 시작 태그 앞의 <br> 정리
+  html = html.replace(/(<\/ol>|<\/ul>|<\/blockquote>)<br>(<p|<div)/g, '$1$2')
+
+  // 연속되지 않은 순서 리스트 번호 수정: 단일 항목 <ol>이 단락 내용으로 나뉠 때 번호 증가 유지
+  const tokens = html.split(/(<ol class="md-ol">(?:<li class="md-oli"[^>]*>[\s\S]*?<\/li>)+<\/ol>)/g)
+  let olCounter = 0
+  let inSequence = false
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i].startsWith('<ol class="md-ol">')) {
+      const liCount = (tokens[i].match(/<li class="md-oli"/g) || []).length
+      if (liCount === 1) {
+        olCounter++
+        if (olCounter > 1) {
+          tokens[i] = tokens[i].replace('<ol class="md-ol">', `<ol class="md-ol" start="${olCounter}">`)
+        }
+        inSequence = true
+      } else {
+        olCounter = 0
+        inSequence = false
+      }
+    } else if (inSequence) {
+      if (/<h[2-5]/.test(tokens[i])) {
+        olCounter = 0
+        inSequence = false
+      }
+    }
+  }
+  html = tokens.join('')
+
+  return html
+}
+
+// Chat Methods
+const sendMessage = async () => {
+  if (!chatInput.value.trim() || isSending.value) return
+  
+  const message = chatInput.value.trim()
+  chatInput.value = ''
+  
+  // Add user message
+  chatHistory.value.push({
+    role: 'user',
+    content: message,
+    timestamp: new Date().toISOString()
+  })
+  
+  scrollToBottom()
+  isSending.value = true
+  
+  try {
+    if (chatTarget.value === 'report_agent') {
+      await sendToReportAgent(message)
+    } else {
+      await sendToAgent(message)
+    }
+  } catch (err) {
+    addLog(`전송 실패: ${err.message}`)
+    chatHistory.value.push({
+      role: 'assistant',
+      content: `죄송합니다, 오류가 발생했습니다: ${err.message}`,
+      timestamp: new Date().toISOString()
+    })
+  } finally {
+    isSending.value = false
+    scrollToBottom()
+    // 대화 기록을 캐시에 자동 저장
+    saveChatHistory()
+  }
+}
+
+const sendToReportAgent = async (message) => {
+  addLog(`Report Agent에게 전송: ${message.substring(0, 50)}...`)
+  
+  // Build chat history for API
+  const historyForApi = chatHistory.value
+    .filter(msg => msg.role !== 'user' || msg.content !== message)
+    .slice(-10) // Keep last 10 messages
+    .map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }))
+  
+  const res = await chatWithReport({
+    simulation_id: props.simulationId,
+    message: message,
+    chat_history: historyForApi
+  })
+  
+  if (res.success && res.data) {
+    chatHistory.value.push({
+      role: 'assistant',
+      content: res.data.response || res.data.answer || '응답 없음',
+      timestamp: new Date().toISOString()
+    })
+    addLog('Report Agent가 응답했습니다')
+  } else {
+    throw new Error(res.error || '요청 실패')
+  }
+}
+
+const sendToAgent = async (message) => {
+  if (!selectedAgent.value || selectedAgentIndex.value === null) {
+    throw new Error('먼저 시뮬레이션 개체를 선택하세요')
+  }
+
+  addLog(`${selectedAgent.value.username}에게 전송: ${message.substring(0, 50)}...`)
+
+  // Build prompt with chat history
+  let prompt = message
+  if (chatHistory.value.length > 1) {
+    const historyContext = chatHistory.value
+      .filter(msg => msg.content !== message)
+      .slice(-6)
+      .map(msg => `${msg.role === 'user' ? '질문자' : '당신'}：${msg.content}`)
+      .join('\n')
+    prompt = `다음은 우리의 이전 대화입니다：\n${historyContext}\n\n이제 새 질문은：${message}`
+  }
+  
+  const res = await interviewAgents({
+    simulation_id: props.simulationId,
+    interviews: [{
+      agent_id: selectedAgentIndex.value,
+      prompt: prompt
+    }]
+  })
+  
+  if (res.success && res.data) {
+    // 올바른 데이터 경로: res.data.result.results는 객체 딕셔너리
+    // 형식: {"twitter_0": {...}, "reddit_0": {...}} 또는 단일 플랫폼 {"reddit_0": {...}}
+    const resultData = res.data.result || res.data
+    const resultsDict = resultData.results || resultData
+
+    // 객체 딕셔너리를 배열로 변환, reddit 플랫폼 응답 우선 획득
+    let responseContent = null
+    const agentId = selectedAgentIndex.value
+
+    if (typeof resultsDict === 'object' && !Array.isArray(resultsDict)) {
+      // reddit 플랫폼 응답 우선, 다음으로 twitter
+      const redditKey = `reddit_${agentId}`
+      const twitterKey = `twitter_${agentId}`
+      const agentResult = resultsDict[redditKey] || resultsDict[twitterKey] || Object.values(resultsDict)[0]
+      if (agentResult) {
+        responseContent = agentResult.response || agentResult.answer
+      }
+    } else if (Array.isArray(resultsDict) && resultsDict.length > 0) {
+      // 배열 형식 호환
+      responseContent = resultsDict[0].response || resultsDict[0].answer
+    }
+
+    if (responseContent) {
+      chatHistory.value.push({
+        role: 'assistant',
+        content: responseContent,
+        timestamp: new Date().toISOString()
+      })
+      addLog(`${selectedAgent.value.username}이(가) 응답했습니다`)
+    } else {
+      throw new Error('응답 데이터 없음')
+    }
+  } else {
+    throw new Error(res.error || '요청 실패')
+  }
+}
+
+const scrollToBottom = () => {
+  nextTick(() => {
+    if (chatMessages.value) {
+      chatMessages.value.scrollTop = chatMessages.value.scrollHeight
+    }
+  })
+}
+
+// Survey Methods
+const toggleAgentSelection = (idx) => {
+  const newSet = new Set(selectedAgents.value)
+  if (newSet.has(idx)) {
+    newSet.delete(idx)
+  } else {
+    newSet.add(idx)
+  }
+  selectedAgents.value = newSet
+}
+
+const selectAllAgents = () => {
+  const newSet = new Set()
+  profiles.value.forEach((_, idx) => newSet.add(idx))
+  selectedAgents.value = newSet
+}
+
+const clearAgentSelection = () => {
+  selectedAgents.value = new Set()
+}
+
+const submitSurvey = async () => {
+  if (selectedAgents.value.size === 0 || !surveyQuestion.value.trim()) return
+
+  isSurveying.value = true
+  addLog(`${selectedAgents.value.size}명에게 설문 전송 중...`)
+  
+  try {
+    const interviews = Array.from(selectedAgents.value).map(idx => ({
+      agent_id: idx,
+      prompt: surveyQuestion.value.trim()
+    }))
+    
+    const res = await interviewAgents({
+      simulation_id: props.simulationId,
+      interviews: interviews
+    })
+    
+    if (res.success && res.data) {
+      // 올바른 데이터 경로: res.data.result.results는 객체 딕셔너리
+      // 형식: {"twitter_0": {...}, "reddit_0": {...}, "twitter_1": {...}, ...}
+      const resultData = res.data.result || res.data
+      const resultsDict = resultData.results || resultData
+
+      // 객체 딕셔너리를 배열 형식으로 변환
+      const surveyResultsList = []
+
+      for (const interview of interviews) {
+        const agentIdx = interview.agent_id
+        const agent = profiles.value[agentIdx]
+
+        // reddit 플랫폼 응답 우선, 다음으로 twitter
+        let responseContent = '응답 없음'
+
+        if (typeof resultsDict === 'object' && !Array.isArray(resultsDict)) {
+          const redditKey = `reddit_${agentIdx}`
+          const twitterKey = `twitter_${agentIdx}`
+          const agentResult = resultsDict[redditKey] || resultsDict[twitterKey]
+          if (agentResult) {
+            responseContent = agentResult.response || agentResult.answer || '응답 없음'
+          }
+        } else if (Array.isArray(resultsDict)) {
+          // 배열 형식 호환
+          const matchedResult = resultsDict.find(r => r.agent_id === agentIdx)
+          if (matchedResult) {
+            responseContent = matchedResult.response || matchedResult.answer || '응답 없음'
+          }
+        }
+        
+        surveyResultsList.push({
+          agent_id: agentIdx,
+          agent_name: agent?.username || `Agent ${agentIdx}`,
+          profession: agent?.profession,
+          question: surveyQuestion.value.trim(),
+          answer: responseContent
+        })
+      }
+      
+      surveyResults.value = surveyResultsList
+      addLog(`${surveyResults.value.length}개 응답 수신`)
+    } else {
+      throw new Error(res.error || '요청 실패')
+    }
+  } catch (err) {
+    const serverMsg = err.response?.data?.error || err.message
+    addLog(`설문 전송 실패: ${serverMsg}`)
+  } finally {
+    isSurveying.value = false
+  }
+}
+
+const submitVote = async () => {
+  if (selectedAgents.value.size === 0 || !voteQuestion.value.trim()) return
+
+  isVoting.value = true
+  addLog(`${selectedAgents.value.size}명에게 투표 전송 중...`)
+
+  // 선택지 목록을 포함한 프롬프트 자동 생성
+  const choiceLines = voteChoices.value.map((label, i) => `${i}: ${label}`).join(', ')
+  const builtPrompt = `${voteQuestion.value.trim()}\n\nAnswer with ONLY a single digit number from the choices below. Do not write anything else.\nChoices: ${choiceLines}`
+
+  try {
+    const interviews = Array.from(selectedAgents.value).map(idx => ({
+      agent_id: idx,
+      prompt: builtPrompt
+    }))
+
+    const res = await interviewAgents({
+      simulation_id: props.simulationId,
+      interviews: interviews
+    })
+
+    if (res.success && res.data) {
+      const resultData = res.data.result || res.data
+      const resultsDict = resultData.results || resultData
+
+      const list = []
+      for (const interview of interviews) {
+        const agentIdx = interview.agent_id
+        const agent = profiles.value[agentIdx]
+
+        let responseContent = ''
+        if (typeof resultsDict === 'object' && !Array.isArray(resultsDict)) {
+          const redditKey = `reddit_${agentIdx}`
+          const twitterKey = `twitter_${agentIdx}`
+          const agentResult = resultsDict[redditKey] || resultsDict[twitterKey]
+          if (agentResult) responseContent = agentResult.response || agentResult.answer || ''
+        } else if (Array.isArray(resultsDict)) {
+          const matched = resultsDict.find(r => r.agent_id === agentIdx)
+          if (matched) responseContent = matched.response || matched.answer || ''
+        }
+
+        // 응답에서 첫 번째 숫자만 추출 (선택지 번호)
+        const numMatch = responseContent.match(/\d+/)
+        const rawValue = numMatch ? parseInt(numMatch[0], 10) : null
+
+        list.push({
+          agent_id: agentIdx,
+          agent_name: agent?.username || `Agent ${agentIdx}`,
+          profession: agent?.profession,
+          rawValue,
+          rawResponse: rawValue === null ? responseContent.trim() : null
+        })
+      }
+
+      voteResults.value = list
+      const validCount = list.filter(r => r.rawValue !== null).length
+      addLog(`투표 완료: ${validCount}/${list.length}명 유효 응답`)
+    } else {
+      throw new Error(res.error || '요청 실패')
+    }
+  } catch (err) {
+    const serverMsg = err.response?.data?.error || err.message
+    addLog(`투표 전송 실패: ${serverMsg}`)
+  } finally {
+    isVoting.value = false
+  }
+}
+
+// Load Report Data
+const loadReportData = async () => {
+  if (!props.reportId) return
+  
+  try {
+    addLog(`보고서 데이터 로드 중: ${props.reportId}`)
+
+    // Get report info
+    const reportRes = await getReport(props.reportId)
+    if (reportRes.success && reportRes.data) {
+      // Load agent logs to get report outline and sections
+      await loadAgentLogs()
+    }
+  } catch (err) {
+    addLog(`보고서 로드 실패: ${err.message}`)
+  }
+}
+
+const loadAgentLogs = async () => {
+  if (!props.reportId) return
+  
+  try {
+    const res = await getAgentLog(props.reportId, 0)
+    if (res.success && res.data) {
+      const logs = res.data.logs || []
+      
+      logs.forEach(log => {
+        if (log.action === 'planning_complete' && log.details?.outline) {
+          reportOutline.value = log.details.outline
+        }
+        
+        if (log.action === 'section_complete' && log.section_index < 100 && log.details?.content) {
+          generatedSections.value[log.section_index] = log.details.content
+        }
+      })
+      
+      addLog('보고서 데이터 로드 완료')
+    }
+  } catch (err) {
+    addLog(`보고서 로그 로드 실패: ${err.message}`)
+  }
+}
+
+const loadProfiles = async () => {
+  if (!props.simulationId) return
+  
+  try {
+    const res = await getSimulationProfilesRealtime(props.simulationId, 'reddit')
+    if (res.success && res.data) {
+      profiles.value = res.data.profiles || []
+      addLog(`시뮬레이션 개체 ${profiles.value.length}명 로드됨`)
+    }
+  } catch (err) {
+    addLog(`시뮬레이션 개체 로드 실패: ${err.message}`)
+  }
+}
+
+// Click outside to close dropdown
+const handleClickOutside = (e) => {
+  const dropdown = document.querySelector('.agent-dropdown')
+  if (dropdown && !dropdown.contains(e.target)) {
+    showAgentDropdown.value = false
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  addLog('Step5 심층 인터랙션 초기화')
+  loadReportData()
+  loadProfiles()
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
+watch(() => props.reportId, (newId) => {
+  if (newId) {
+    loadReportData()
+  }
+}, { immediate: true })
+
+watch(() => props.simulationId, (newId) => {
+  if (newId) {
+    loadProfiles()
+  }
+}, { immediate: true })
+</script>
+
+<style scoped>
+.interaction-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #F8F9FA;
+  font-family: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+/* Utility Classes */
+.mono {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+/* Main Split Layout */
+.main-split-layout {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Left Panel - Report Style (Step4Report.vue와 완전히 동일) */
+.left-panel.report-style {
+  width: 45%;
+  min-width: 450px;
+  background: #FFFFFF;
+  border-right: 1px solid #E5E7EB;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 30px 50px 60px 50px;
+}
+
+.left-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.left-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.left-panel::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.left-panel:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.left-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Report Header */
+.report-content-wrapper {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.report-header-block {
+  margin-bottom: 30px;
+}
+
+.report-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.report-tag {
+  background: #000000;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.report-id {
+  font-size: 11px;
+  color: #9CA3AF;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.main-title {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+  margin: 0 0 16px 0;
+  letter-spacing: -0.02em;
+}
+
+.sub-title {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 16px;
+  color: #6B7280;
+  font-style: italic;
+  line-height: 1.6;
+  margin: 0 0 30px 0;
+  font-weight: 400;
+}
+
+.header-divider {
+  height: 1px;
+  background: #E5E7EB;
+  width: 100%;
+}
+
+/* Sections List */
+.sections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.report-section-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  transition: background-color 0.2s ease;
+  padding: 8px 12px;
+  margin: -8px -12px;
+  border-radius: 8px;
+}
+
+.section-header-row.clickable {
+  cursor: pointer;
+}
+
+.section-header-row.clickable:hover {
+  background-color: #F9FAFB;
+}
+
+.collapse-icon {
+  margin-left: auto;
+  color: #9CA3AF;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.collapse-icon.is-collapsed {
+  transform: rotate(-90deg);
+}
+
+.section-number {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  color: #E5E7EB;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.section-title {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  transition: color 0.3s ease;
+}
+
+/* States */
+.report-section-item.is-pending .section-number {
+  color: #E5E7EB;
+}
+.report-section-item.is-pending .section-title {
+  color: #D1D5DB;
+}
+
+.report-section-item.is-active .section-number,
+.report-section-item.is-completed .section-number {
+  color: #9CA3AF;
+}
+
+.report-section-item.is-active .section-title,
+.report-section-item.is-completed .section-title {
+  color: #111827;
+}
+
+.section-body {
+  padding-left: 28px;
+  overflow: hidden;
+}
+
+/* Generated Content */
+.generated-content {
+  font-family: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #374151;
+}
+
+.generated-content :deep(p) {
+  margin-bottom: 1em;
+}
+
+.generated-content :deep(.md-h2),
+.generated-content :deep(.md-h3),
+.generated-content :deep(.md-h4) {
+  font-family: 'Times New Roman', Times, serif;
+  color: #111827;
+  margin-top: 1.5em;
+  margin-bottom: 0.8em;
+  font-weight: 700;
+}
+
+.generated-content :deep(.md-h2) { font-size: 20px; border-bottom: 1px solid #F3F4F6; padding-bottom: 8px; }
+.generated-content :deep(.md-h3) { font-size: 18px; }
+.generated-content :deep(.md-h4) { font-size: 16px; }
+
+.generated-content :deep(.md-ul),
+.generated-content :deep(.md-ol) {
+  padding-left: 20px;
+  margin-bottom: 1em;
+}
+
+.generated-content :deep(.md-li) {
+  margin-bottom: 0.5em;
+}
+
+.generated-content :deep(.md-quote) {
+  border-left: 3px solid #E5E7EB;
+  padding-left: 16px;
+  margin: 1.5em 0;
+  color: #6B7280;
+  font-style: italic;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.generated-content :deep(.code-block) {
+  background: #F9FAFB;
+  padding: 12px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  overflow-x: auto;
+  margin: 1em 0;
+  border: 1px solid #E5E7EB;
+}
+
+.generated-content :deep(strong) {
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #6B7280;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.loading-icon {
+  width: 18px;
+  height: 18px;
+  animation: spin 1s linear infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-text {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 15px;
+  color: #4B5563;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Content Styles Override */
+.generated-content :deep(.md-h2) {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 18px;
+  margin-top: 0;
+}
+
+/* Waiting Placeholder */
+.waiting-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px;
+  color: #9CA3AF;
+}
+
+.waiting-animation {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+
+.waiting-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 2px solid #E5E7EB;
+  border-radius: 50%;
+  animation: ripple 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.waiting-ring:nth-child(2) {
+  animation-delay: 0.4s;
+}
+
+.waiting-ring:nth-child(3) {
+  animation-delay: 0.8s;
+}
+
+@keyframes ripple {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+.waiting-text {
+  font-size: 14px;
+}
+
+/* Right Panel - Interaction */
+.right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #FFFFFF;
+  overflow: hidden;
+}
+
+/* Action Bar - Professional Design */
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #E5E7EB;
+  background: linear-gradient(180deg, #FFFFFF 0%, #FAFBFC 100%);
+  gap: 16px;
+}
+
+.action-bar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 160px;
+}
+
+.action-bar-icon {
+  color: #1F2937;
+  flex-shrink: 0;
+}
+
+.action-bar-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-bar-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1F2937;
+  letter-spacing: -0.01em;
+}
+
+.action-bar-subtitle {
+  font-size: 11px;
+  color: #9CA3AF;
+}
+
+.action-bar-subtitle.mono {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+.action-bar-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.tab-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6B7280;
+  background: #F3F4F6;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tab-pill:hover {
+  background: #E5E7EB;
+  color: #374151;
+}
+
+.tab-pill.active {
+  background: #1F2937;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.15);
+}
+
+.tab-pill svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.tab-pill.active svg {
+  opacity: 1;
+}
+
+.tab-divider {
+  width: 1px;
+  height: 24px;
+  background: #E5E7EB;
+  margin: 0 6px;
+}
+
+.agent-pill {
+  width: 200px;
+  justify-content: space-between;
+}
+
+.agent-pill span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.survey-pill {
+  background: #ECFDF5;
+  color: #047857;
+}
+
+.survey-pill:hover {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.survey-pill.active {
+  background: #047857;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(4, 120, 87, 0.2);
+}
+
+.vote-pill {
+  background: #EFF6FF;
+  color: #1D4ED8;
+}
+
+.vote-pill:hover {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.vote-pill.active {
+  background: #1D4ED8;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.2);
+}
+
+.vote-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.vote-choices-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.vote-choice-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vote-choice-num {
+  min-width: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6366F1;
+  text-align: center;
+}
+
+.vote-choice-input {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+}
+
+.vote-choice-input:focus {
+  border-color: #6366F1;
+}
+
+.vote-choice-remove {
+  background: none;
+  border: none;
+  color: #9CA3AF;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 4px;
+}
+
+.vote-choice-remove:hover {
+  color: #EF4444;
+}
+
+.vote-stats-card {
+  background: #F8FAFF;
+  border: 1px solid #DBEAFE;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+.vote-stats-body {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vote-average {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vote-stat-label {
+  font-size: 13px;
+  color: #6B7280;
+  min-width: 48px;
+}
+
+.vote-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1D4ED8;
+}
+
+.vote-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vote-choice-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vote-choice-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  min-width: 24px;
+  text-align: center;
+}
+
+.vote-choice-bar-wrap {
+  flex: 1;
+  height: 10px;
+  background: #E5E7EB;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.vote-choice-bar {
+  height: 100%;
+  background: #1D4ED8;
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.vote-choice-pct {
+  font-size: 12px;
+  color: #6B7280;
+  min-width: 80px;
+  text-align: right;
+}
+
+.vote-badge {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.vote-badge-valid {
+  background: #DBEAFE;
+  color: #1D4ED8;
+}
+
+.vote-badge-invalid {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+.new-vote-btn {
+  padding: 7px 16px;
+  background: #6366F1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.new-vote-btn:hover {
+  background: #4F46E5;
+}
+
+.vote-invalid-response {
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: #FFF5F5;
+  border-left: 3px solid #FCA5A5;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #7F1D1D;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Interaction Header */
+.interaction-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #E5E7EB;
+  background: #FAFAFA;
+}
+
+.tab-switcher {
+  display: flex;
+  gap: 8px;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6B7280;
+  background: transparent;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  background: #F9FAFB;
+  border-color: #D1D5DB;
+}
+
+.tab-btn.active {
+  background: #1F2937;
+  color: #FFFFFF;
+  border-color: #1F2937;
+}
+
+.tab-btn svg {
+  flex-shrink: 0;
+}
+
+/* Chat Container */
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Report Agent Tools Card */
+.report-agent-tools-card {
+  border-bottom: 1px solid #E5E7EB;
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+}
+
+.tools-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+}
+
+.tools-card-avatar {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  background: linear-gradient(135deg, #1F2937 0%, #374151 100%);
+  color: #FFFFFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.2);
+}
+
+.tools-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.tools-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: 2px;
+}
+
+.tools-card-subtitle {
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.tools-card-toggle {
+  width: 28px;
+  height: 28px;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6B7280;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.tools-card-toggle:hover {
+  background: #F9FAFB;
+  border-color: #D1D5DB;
+}
+
+.tools-card-toggle svg {
+  transition: transform 0.3s ease;
+}
+
+.tools-card-toggle svg.is-expanded {
+  transform: rotate(180deg);
+}
+
+.tools-card-body {
+  padding: 0 20px 16px 20px;
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.tool-item {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  background: #FFFFFF;
+  border-radius: 10px;
+  border: 1px solid #E5E7EB;
+  transition: all 0.2s ease;
+}
+
+.tool-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.tool-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tool-purple .tool-icon-wrapper {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8B5CF6;
+}
+
+.tool-blue .tool-icon-wrapper {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3B82F6;
+}
+
+.tool-orange .tool-icon-wrapper {
+  background: rgba(249, 115, 22, 0.1);
+  color: #F97316;
+}
+
+.tool-green .tool-icon-wrapper {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22C55E;
+}
+
+.tool-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.tool-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: 4px;
+}
+
+.tool-desc {
+  font-size: 11px;
+  color: #6B7280;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Agent Profile Card */
+.agent-profile-card {
+  border-bottom: 1px solid #E5E7EB;
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+}
+
+.profile-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+}
+
+.profile-card-avatar {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  background: linear-gradient(135deg, #1F2937 0%, #374151 100%);
+  color: #FFFFFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(31, 41, 55, 0.2);
+}
+
+.profile-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1F2937;
+  margin-bottom: 2px;
+}
+
+.profile-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.profile-card-handle {
+  color: #9CA3AF;
+}
+
+.profile-card-profession {
+  padding: 2px 8px;
+  background: #E5E7EB;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.profile-card-toggle {
+  width: 28px;
+  height: 28px;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6B7280;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.profile-card-toggle:hover {
+  background: #F9FAFB;
+  border-color: #D1D5DB;
+}
+
+.profile-card-toggle svg {
+  transition: transform 0.3s ease;
+}
+
+.profile-card-toggle svg.is-expanded {
+  transform: rotate(180deg);
+}
+
+.profile-card-body {
+  padding: 0 20px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.profile-card-bio {
+  background: #FFFFFF;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #E5E7EB;
+}
+
+.profile-card-bio p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #4B5563;
+}
+
+/* Target Selector */
+.target-selector {
+  padding: 16px 24px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.selector-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+
+.selector-options {
+  display: flex;
+  gap: 12px;
+}
+
+.target-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.target-option:hover {
+  border-color: #D1D5DB;
+}
+
+.target-option.active {
+  background: #1F2937;
+  color: #FFFFFF;
+  border-color: #1F2937;
+}
+
+/* Agent Dropdown */
+.agent-dropdown {
+  position: relative;
+}
+
+.dropdown-arrow {
+  margin-left: 4px;
+  transition: transform 0.2s ease;
+  opacity: 0.6;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 240px;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+  max-height: 320px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.dropdown-header {
+  padding: 12px 16px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+.dropdown-item:hover {
+  background: #F9FAFB;
+  border-left-color: #1F2937;
+}
+
+.dropdown-item:first-of-type {
+  margin-top: 4px;
+}
+
+.dropdown-item:last-child {
+  margin-bottom: 4px;
+}
+
+.agent-avatar {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  background: linear-gradient(135deg, #1F2937 0%, #374151 100%);
+  color: #FFFFFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(31, 41, 55, 0.1);
+}
+
+.agent-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.agent-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1F2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-role {
+  font-size: 11px;
+  color: #9CA3AF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Chat Messages */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.chat-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #9CA3AF;
+}
+
+.empty-icon {
+  opacity: 0.3;
+}
+
+.empty-text {
+  font-size: 14px;
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.6;
+}
+
+.chat-message {
+  display: flex;
+  gap: 12px;
+}
+
+.chat-message.user {
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.chat-message.user .message-avatar {
+  background: #1F2937;
+  color: #FFFFFF;
+}
+
+.chat-message.assistant .message-avatar {
+  background: #F3F4F6;
+  color: #374151;
+}
+
+.message-content {
+  max-width: 70%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chat-message.user .message-content {
+  align-items: flex-end;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-message.user .message-header {
+  flex-direction: row-reverse;
+}
+
+.sender-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.message-time {
+  font-size: 11px;
+  color: #9CA3AF;
+}
+
+.message-text {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.chat-message.user .message-text {
+  background: #1F2937;
+  color: #FFFFFF;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-message.assistant .message-text {
+  background: #F3F4F6;
+  color: #374151;
+  border-bottom-left-radius: 4px;
+}
+
+.message-text :deep(.md-p) {
+  margin: 0;
+}
+
+.message-text :deep(.md-p:last-child) {
+  margin-bottom: 0;
+}
+
+/* 순서 리스트 번호 수정 - CSS 카운터를 사용하여 여러 ol이 연속 번호 매기기 */
+.message-text {
+  counter-reset: list-counter;
+}
+
+.message-text :deep(.md-ol) {
+  list-style: none;
+  padding-left: 0;
+  margin: 8px 0;
+}
+
+.message-text :deep(.md-oli) {
+  counter-increment: list-counter;
+  display: flex;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.message-text :deep(.md-oli)::before {
+  content: counter(list-counter) ".";
+  font-weight: 600;
+  color: #374151;
+  min-width: 20px;
+  flex-shrink: 0;
+}
+
+/* 비순서 리스트 스타일 */
+.message-text :deep(.md-ul) {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.message-text :deep(.md-li) {
+  margin: 4px 0;
+}
+
+/* Typing Indicator */
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 10px 14px;
+  background: #F3F4F6;
+  border-radius: 12px;
+  border-bottom-left-radius: 4px;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: #9CA3AF;
+  border-radius: 50%;
+  animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(1) { animation-delay: 0s; }
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-8px); }
+}
+
+/* Chat Input */
+.chat-input-area {
+  padding: 16px 24px;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 14px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  resize: none;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: border-color 0.2s ease;
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: #1F2937;
+}
+
+.chat-input:disabled {
+  background: #F9FAFB;
+  cursor: not-allowed;
+}
+
+.send-btn {
+  width: 44px;
+  height: 44px;
+  background: #1F2937;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.send-btn:hover:not(:disabled) {
+  background: #374151;
+}
+
+.send-btn:disabled {
+  background: #E5E7EB;
+  color: #9CA3AF;
+  cursor: not-allowed;
+}
+
+/* Survey Container */
+.survey-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.survey-setup {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border-bottom: 1px solid #E5E7EB;
+  overflow: hidden;
+}
+
+.setup-section {
+  margin-bottom: 24px;
+}
+
+.setup-section:first-child {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.setup-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.setup-section .section-header .section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.selection-count {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+/* Agents Grid */
+.agents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px;
+  align-content: start;
+}
+
+.agent-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.agent-checkbox:hover {
+  border-color: #D1D5DB;
+}
+
+.agent-checkbox.checked {
+  background: #F0FDF4;
+  border-color: #10B981;
+}
+
+.agent-checkbox input {
+  display: none;
+}
+
+.checkbox-avatar {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  background: #E5E7EB;
+  color: #374151;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.agent-checkbox.checked .checkbox-avatar {
+  background: #10B981;
+  color: #FFFFFF;
+}
+
+.checkbox-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.checkbox-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1F2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.checkbox-role {
+  display: block;
+  font-size: 10px;
+  color: #9CA3AF;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.checkbox-indicator {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #E5E7EB;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.agent-checkbox.checked .checkbox-indicator {
+  background: #10B981;
+  border-color: #10B981;
+  color: #FFFFFF;
+}
+
+.checkbox-indicator svg {
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.2s ease;
+}
+
+.agent-checkbox.checked .checkbox-indicator svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.selection-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.action-link {
+  font-size: 12px;
+  color: #6B7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.action-link:hover {
+  color: #1F2937;
+  text-decoration: underline;
+}
+
+.action-divider {
+  color: #E5E7EB;
+}
+
+/* Survey Input */
+.survey-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 14px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  resize: none;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: border-color 0.2s ease;
+}
+
+.survey-input:focus {
+  outline: none;
+  border-color: #1F2937;
+}
+
+.survey-submit-btn {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: #1F2937;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.survey-submit-btn:hover:not(:disabled) {
+  background: #374151;
+}
+
+.survey-submit-btn:disabled {
+  background: #E5E7EB;
+  color: #9CA3AF;
+  cursor: not-allowed;
+}
+
+.loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #FFFFFF;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Survey Results */
+.survey-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.results-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1F2937;
+}
+
+.results-count {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.result-card {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.result-avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  background: #1F2937;
+  color: #FFFFFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.result-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1F2937;
+}
+
+.result-role {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+.result-question {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: #FFFFFF;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.result-question svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.result-answer {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #374151;
+}
+
+/* Markdown Styles */
+:deep(.md-p) {
+  margin: 0 0 12px 0;
+}
+
+:deep(.md-h2) {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1F2937;
+  margin: 24px 0 12px 0;
+}
+
+:deep(.md-h3) {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  margin: 20px 0 10px 0;
+}
+
+:deep(.md-h4) {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4B5563;
+  margin: 16px 0 8px 0;
+}
+
+:deep(.md-h5) {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6B7280;
+  margin: 12px 0 6px 0;
+}
+
+:deep(.md-ul), :deep(.md-ol) {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+:deep(.md-li), :deep(.md-oli) {
+  margin: 6px 0;
+}
+
+/* 채팅/설문 영역의 인용 스타일 */
+.chat-messages :deep(.md-quote),
+.result-answer :deep(.md-quote) {
+  margin: 12px 0;
+  padding: 12px 16px;
+  background: #F9FAFB;
+  border-left: 3px solid #1F2937;
+  color: #4B5563;
+}
+
+:deep(.code-block) {
+  margin: 12px 0;
+  padding: 12px 16px;
+  background: #1F2937;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+:deep(.code-block code) {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: #E5E7EB;
+}
+
+:deep(.inline-code) {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: #F3F4F6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #1F2937;
+}
+
+:deep(.md-hr) {
+  border: none;
+  border-top: 1px solid #E5E7EB;
+  margin: 24px 0;
+}
+</style>
